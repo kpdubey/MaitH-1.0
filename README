@@ -1,0 +1,115 @@
+
+#			IndicTrans2 Model
+#create a folder MaitH1.0
+cd Maith1.0
+#create a experiment folder for indic-indic-exp
+indic-indic-exp
+   ├──   train
+   │        ├── mai_Deva-hin_Deva
+   │                     ├── train.mai_Deva
+   │                     └── train.hin_Deva
+   │
+   ├──   devtest
+            ├──   all
+		    ├── mai_Deva-hin_Deva
+                          ├── dev.mai_Deva
+                          ├── dev.hin_Deva
+   		           ├── test.mai_Deva
+                          └── test.hin_Deva
+# Install all the dependencies and requirements associated with the project.
+source install.sh                          
+   
+# Clone the github repository
+	git clone https://github.com/AI4Bharat/IndicTrans2
+	
+# Using IndicTrans2 SPM model and Fairseq dictionary to Preparing Data for Training. vocab and final_bin folder inside the indic-indic-exp directory
+
+indic-indic-exp
+├── train
+│   
+├── devtest
+│   
+├── vocab
+│   ├── model.SRC
+│   ├── model.TGT
+│   ├── vocab.SRC
+│   └── vocab.TGT
+└── final_bin
+    ├── dict.SRC.txt
+    └── dict.TGT.txt
+  
+cd IndicTrans2    
+# binarization for model training
+bash prepare_data_joint_finetuning.sh <exp_dir>  
+
+#finetuning:-we have t0 first download the pretrained_ckpt of IndicTrans2 model and save inside the indic-indic-exp with model folder.  
+bash finetune.sh <exp_dir> <model_arch> <pretrained_ckpt>
+
+<exp_dir>: directory path containing the binarized data
+<model_arch>: custom transformer architecture used for training 
+
+#inference
+bash joint_translate.sh <infname> <outfname> <src_lang> <tgt_lang> <ckpt_dir>  
+
+
+    infname: input file path
+    outfname: output file path, where the translations should be stored
+    src_lang: source language
+    tgt_lang: target language
+    ckpt_dir: path to the fairseq model checkpoint directory
+    
+# Evalution: compute the BLEU, chrF2, and TER scores for prediction file
+
+bash compute_metrics.sh <pred_fname> <ref_fname> <tgt_lang>
+
+    pred_fname: prediction filename path 
+    ref_fname: reference translation file name path 
+    tgt_lang: target language code
+    
+# To compute COMET score
+mkdir COMET/data
+inside data folder , we have three files test file of source langugae, reference translation and predicted translation
+    python COMET.py
+    
+    
+
+#  mT5 Model
+
+
+# create conda environmnet
+conda create --name hgftransformer
+conda activate hgftransformer
+mkdir hgftransformer
+
+install the library from requirement.txt file
+
+(hgftransformer) abc@xyz:~/hgftransformer$
+
+# for training
+(hgftransformer) abc@xyz:~/hgftransformer$ python3 S2T2/examples/pytorch/translation/run_translation.py     --model_name_or_path /home/hgftransformer/mt5     --do_train --do_eval     --source_lang ma     --target_lang hi --source_prefix "<2hi> "  --train_file /home/hgftransformer/data/train/train_mai_hin.json --validation_file /home/hgftransformer/data/test/test_mai_hin.json  --test_file /home/hgftransformer/data/test/test_mai_hin.json --output_dir checkpoints/mT5_mahi/     --per_device_train_batch_size=2     --per_device_eval_batch_size=4     --num_train_epochs 7     --predict_with_generate   --save_strategy no  --metric_for_best_model bleu --overwrite_output_dir
+
+# for inference and prdict BLEU4 score
+(hgftransformer) abc@xyz:~/nmt/hgftransformer$ python3 S2T2/examples/pytorch/translation/run_translation.py --model_name_or_path checkpoints_new/mT5_mahi  --do_predict  --source_lang ma --target_lang hi   --source_prefix "<2hi> "  --validation_file /home/hgftransformer/data/test/test_mai_hin.json --test_file /home/hgftransformer/data/test/test_mai_hin.json  --output_dir checkpoints_new/mT5_mahi/output --per_device_eval_batch_size=4 --predict_with_generate --overwrite_output_dir
+
+# for chrf2 and TER score
+(hgfTransformer) kpdubey@ailabs:~/nmt/hgftransformer$ python chrF_TER.py
+
+
+
+
+
+# mBART5O
+
+mkdir mBART50_mai_hin
+download mbart50 model from huggingface transformer
+all the dataset file should be in .json file for example train.json, valid.json, test.json
+# for training
+(hgftransformer) abc@xyz:/mBART50_mai_hin$ python3 S2T2/examples/pytorch/translation/run_translation.py     --model_name_or_path /media/mBART50_mai_hin/mbart     --do_train --do_eval     --source_lang ma_XX     --target_lang hi_IN    --train_file /media/kpdubey/43a28c87-1876-4ae5-a360-9029ca34f6cd/nmt/mBART50_mai_hin_samanan_pseudo_data/data/train/train.json --validation_file /mBART50_mai_hin_samanan_pseudo_data/data/dev/dev.json  --test_file /mBART50_mai_hin_samanan_pseudo_data/data/test/test.json --output_dir checkpoint/mBART50_mai_hin/     --per_device_train_batch_size=6     --per_device_eval_batch_size=8     --num_train_epochs 7  --predict_with_generate  --save_strategy no --metric_for_best_model bleu --overwrite_output_dir --logging_dir /mBART50_mai_hin_samanan_pseudo_data/log --report_to tensorboard
+
+# for inference
+(hgftransformer) abc@xyz:/mBART50_mai_hin$ python3 S2T2/examples/pytorch/translation/run_translation.py --model_name_or_path checkpoint/mBART50_mai_hin/  --do_predict  --source_lang ma_XX --target_lang hi_IN  --validation_file /media/mBART50_mai_hin/data/dev/dev.json  --test_file /media/mBART50_mai_hin/data/test/test.json  --output_dir /media/output --per_device_eval_batch_size=4 --predict_with_generate --overwrite_output_dir
+
+# for chrf2 and TER score
+(hgfTransformer) kpdubey@ailabs:~/nmt/hgftransformer$ python chrF_TER.py
+
+
